@@ -1,242 +1,245 @@
-
-import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
-import 'package:local_auth/local_auth.dart';
-import '../helpers/biometrics_helper.dart';
-import 'private_page.dart';
-import 'package:flutter/material.dart';
-
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
-
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          // Gradient Background
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-
-                  Color(0xFF736FF3) ,
-                  Color(0xFF736FF3) ,
-
-                  Color(0xFFF494DB) ,
-                  Color(0xFFF494DB) ,
-
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-
-          // Bottom clipped white wave over gradient
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: SizedBox(
-              height: 260,
-              width: double.infinity,
-              child: ClipPath(
-                clipper: InnerWaveClipper(),
-                child: Container(
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-
-          // Content
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Column(
-
-
-
-                  children: [
-
-                    const Text(
-                      "Login",
-                      style: TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-                    _buildWhiteButton("Login with Fingerprint", _goToPrivatePage),
-                    const SizedBox(height: 36),
-                    _buildWhiteButton("Login with Face ID", _authenticateWithFace),
-                    const SizedBox(height: 36),
-
-
-
-
-                    const Text(
-                      "Let's See The World Togather",
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                        fontWeight: FontWeight.normal,
-                      ),
-                    ),
-
-
-
-                    const SizedBox(height: 40),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(top: 0),
-                          child: Image.asset(
-                            "assets/images/Untitled design.png",
-                            width: 240,
-                            height: 240,
-                          ),
-                        ),
-                      ],
-
-
-
-                    ),
-
-
-
-
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // New method to build buttons using image icons
-  Widget _buildImageButton(String label, String imagePath) {
-    return ElevatedButton.icon(
-      onPressed: () {},
-      icon: Image.asset(
-        imagePath,
-        width: 24,
-        height: 24,
-      ),
-      label: Text(label, style: const TextStyle(color: Colors.white)),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.black87,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        elevation: 3,
-      ),
-    );
-  }
-
-
-  Widget _buildWhiteButton(String text, VoidCallback onPressed) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF5A4FCF),
-        minimumSize: const Size.fromHeight(50),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        elevation: 3,
-        shadowColor: Colors.black26,
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-      ),
-    );
-  }
-
-  Widget _buildSocialButton(String label, Color color, IconData icon) {
-    return ElevatedButton.icon(
-      onPressed: () {},
-      icon: Icon(icon, color: Colors.white),
-      label: Text(label, style: const TextStyle(color: Colors.white)),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        elevation: 3,
-      ),
-    );
-  }
-
-  Future<void> _goToPrivatePage() async {
-    if (!await BiometricHelper.isBiometricSupported()) {
-      Fluttertoast.showToast(msg: "Device does not support biometrics.");
-      return;
-    }
-
-    final availableBiometrics = await BiometricHelper.getAvailableBiometrics();
-    if (availableBiometrics.isEmpty) {
-      Fluttertoast.showToast(msg: "No biometrics found. Please set it up.");
-      return;
-    }
-
-    final bool didAuthenticate = await BiometricHelper.authenticate();
-    if (didAuthenticate && mounted) {
-      Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => const PrivatePage()));
-    }
-  }
-
-  Future<void> _authenticateWithFace() async {
-    print("this is called");
-    // if (!await BiometricHelper.isBiometricSupported()) {
-    //   Fluttertoast.showToast(msg: "Device does not support biometrics.");
-    //   return;
-    // }
-
-    // final availableBiometrics = await BiometricHelper.getAvailableBiometrics();
-    // Fluttertoast.showToast(msg: "Available biometrics##: $availableBiometrics");
-
-    // if (!availableBiometrics.contains(BiometricType.face)) {
-    //   Fluttertoast.showToast(msg: "Face ID not found. Please set it up.");
-    //   return;
-    // }
-
-    final bool didAuthenticate = await BiometricHelper.authenticateWithFace();
-    if (didAuthenticate && mounted) {
-      Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => const PrivatePage()));
-    }
-  }
-}
-
-// White inner wave
-class InnerWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height * 0.3);
-    path.quadraticBezierTo(
-        size.width * 0.25, size.height * 0.5, size.width * 0.5, size.height * 0.4);
-    path.quadraticBezierTo(
-        size.width * 0.75, size.height * 0.3, size.width, size.height * 0.5);
-    path.lineTo(size.width, size.height); // ensure it fills bottom
-    path.lineTo(0, size.height); // close at the bottom
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
-
+// // ****wahaj wala ***
+//
+// import 'package:flutter/material.dart';
+// import 'package:fluttertoast/fluttertoast.dart';
+// import 'package:local_auth/local_auth.dart';
+// import '../helpers/biometrics_helper.dart';
+// import 'private_page.dart';
+// import 'package:flutter/material.dart';
+//
+// class HomePage extends StatefulWidget {
+//   const HomePage({super.key});
+//
+//   @override
+//   State<HomePage> createState() => _HomePageState();
+// }
+//
+// class _HomePageState extends State<HomePage> {
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       backgroundColor: Colors.transparent,
+//       body: Stack(
+//         children: [
+//           // Gradient Background
+//           Container(
+//             decoration: const BoxDecoration(
+//               gradient: LinearGradient(
+//                 colors: [
+//
+//                   Color(0xFF736FF3) ,
+//                   Color(0xFF736FF3) ,
+//
+//                   Color(0xFFF494DB) ,
+//                   Color(0xFFF494DB) ,
+//
+//                 ],
+//                 begin: Alignment.topLeft,
+//                 end: Alignment.bottomRight,
+//               ),
+//             ),
+//           ),
+//
+//           // Bottom clipped white wave over gradient
+//           Align(
+//             alignment: Alignment.bottomCenter,
+//             child: SizedBox(
+//               height: 260,
+//               width: double.infinity,
+//               child: ClipPath(
+//                 clipper: InnerWaveClipper(),
+//                 child: Container(
+//                   color: Colors.white,
+//                 ),
+//               ),
+//             ),
+//           ),
+//
+//           // Content
+//           SafeArea(
+//             child: Center(
+//               child: SingleChildScrollView(
+//                 padding: const EdgeInsets.symmetric(horizontal: 32),
+//                 child: Column(
+//
+//
+//
+//                   children: [
+//
+//                     const Text(
+//                       "Login",
+//                       style: TextStyle(
+//                         fontSize: 30,
+//                         fontWeight: FontWeight.bold,
+//                         color: Colors.white,
+//                       ),
+//                     ),
+//                     const SizedBox(height: 30),
+//                     _buildWhiteButton("Login with Fingerprint", _goToPrivatePage),
+//                     const SizedBox(height: 36),
+//                     _buildWhiteButton("Login with Face ID", _authenticateWithFace),
+//                     const SizedBox(height: 36),
+//
+//
+//
+//
+//                     const Text(
+//                       "Let's See The World Togather",
+//                       style: TextStyle(
+//                         color: Colors.white70,
+//                         fontSize: 14,
+//                         fontWeight: FontWeight.normal,
+//                       ),
+//                     ),
+//
+//
+//
+//                     const SizedBox(height: 40),
+//
+//                     Row(
+//                       mainAxisAlignment: MainAxisAlignment.center,
+//                       children: [
+//                         Padding(
+//                           padding: const EdgeInsets.only(top: 0),
+//                           child: Image.asset(
+//                             "assets/images/Untitled design.png",
+//                             width: 240,
+//                             height: 240,
+//                           ),
+//                         ),
+//                       ],
+//
+//
+//
+//                     ),
+//
+//
+//
+//
+//                   ],
+//                 ),
+//               ),
+//             ),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+//
+//   // New method to build buttons using image icons
+//   Widget _buildImageButton(String label, String imagePath) {
+//     return ElevatedButton.icon(
+//       onPressed: () {},
+//       icon: Image.asset(
+//         imagePath,
+//         width: 24,
+//         height: 24,
+//       ),
+//       label: Text(label, style: const TextStyle(color: Colors.white)),
+//       style: ElevatedButton.styleFrom(
+//         backgroundColor: Colors.black87,
+//         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+//         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+//         elevation: 3,
+//       ),
+//     );
+//   }
+//
+//
+//   Widget _buildWhiteButton(String text, VoidCallback onPressed) {
+//     return ElevatedButton(
+//       onPressed: onPressed,
+//       style: ElevatedButton.styleFrom(
+//         backgroundColor: Colors.white,
+//         foregroundColor: const Color(0xFF5A4FCF),
+//         minimumSize: const Size.fromHeight(50),
+//         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+//         elevation: 3,
+//         shadowColor: Colors.black26,
+//       ),
+//       child: Text(
+//         text,
+//         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+//       ),
+//     );
+//   }
+//
+//   Widget _buildSocialButton(String label, Color color, IconData icon) {
+//     return ElevatedButton.icon(
+//       onPressed: () {},
+//       icon: Icon(icon, color: Colors.white),
+//       label: Text(label, style: const TextStyle(color: Colors.white)),
+//       style: ElevatedButton.styleFrom(
+//         backgroundColor: color,
+//         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+//         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+//         elevation: 3,
+//       ),
+//     );
+//   }
+//
+//   Future<void> _goToPrivatePage() async {
+//     if (!await BiometricHelper.isBiometricSupported()) {
+//       Fluttertoast.showToast(msg: "Device does not support biometrics.");
+//       return;
+//     }
+//
+//     final availableBiometrics = await BiometricHelper.getAvailableBiometrics();
+//     if (availableBiometrics.isEmpty) {
+//       Fluttertoast.showToast(msg: "No biometrics found. Please set it up.");
+//       return;
+//     }
+//
+//     final bool didAuthenticate = await BiometricHelper.authenticate();
+//     if (didAuthenticate && mounted) {
+//       Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => const PrivatePage()));
+//     }
+//   }
+//
+//   Future<void> _authenticateWithFace() async {
+//     print("this is called");
+//     // if (!await BiometricHelper.isBiometricSupported()) {
+//     //   Fluttertoast.showToast(msg: "Device does not support biometrics.");
+//     //   return;
+//     // }
+//
+//     // final availableBiometrics = await BiometricHelper.getAvailableBiometrics();
+//     // Fluttertoast.showToast(msg: "Available biometrics##: $availableBiometrics");
+//
+//     // if (!availableBiometrics.contains(BiometricType.face)) {
+//     //   Fluttertoast.showToast(msg: "Face ID not found. Please set it up.");
+//     //   return;
+//     // }
+//
+//     final bool didAuthenticate = await BiometricHelper.authenticateWithFace();
+//     if (didAuthenticate && mounted) {
+//       Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => const PrivatePage()));
+//     }
+//   }
+// }
+//
+// // White inner wave
+// class InnerWaveClipper extends CustomClipper<Path> {
+//   @override
+//   Path getClip(Size size) {
+//     final path = Path();
+//     path.lineTo(0, size.height * 0.3);
+//     path.quadraticBezierTo(
+//         size.width * 0.25, size.height * 0.5, size.width * 0.5, size.height * 0.4);
+//     path.quadraticBezierTo(
+//         size.width * 0.75, size.height * 0.3, size.width, size.height * 0.5);
+//     path.lineTo(size.width, size.height); // ensure it fills bottom
+//     path.lineTo(0, size.height); // close at the bottom
+//     path.close();
+//     return path;
+//   }
+//
+//   @override
+//   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+// }
+//
+//
+// ****wahaj wala end***
 
 
 
@@ -445,3 +448,211 @@ class InnerWaveClipper extends CustomClipper<Path> {
 //     }
 //   }
 // }
+import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import '../helpers/biometrics_helper.dart';
+import 'private_page.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  late FlutterTts _flutterTts;
+  late stt.SpeechToText _speechToText;
+  bool _isListening = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _flutterTts = FlutterTts();
+    _speechToText = stt.SpeechToText();
+    _initVoice();
+  }
+
+  Future<void> _initVoice() async {
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setSpeechRate(0.55);
+    await _flutterTts.setPitch(1.0);
+    await _flutterTts.setVolume(1.0);
+
+    await _flutterTts.speak(
+      "Welcome to the Seeing The Unseen. You can either login by fingerprint or by face ID.",
+    );
+    await _flutterTts.awaitSpeakCompletion(true);
+
+    _listenForCommands();
+  }
+
+  Future<void> _listenForCommands() async {
+    bool available = await _speechToText.initialize();
+    if (available) {
+      setState(() => _isListening = true);
+      await _speechToText.listen(
+        listenMode: stt.ListenMode.dictation,
+        onResult: (result) {
+          String command = result.recognizedWords.toLowerCase().replaceAll(" ", "");
+          if (result.finalResult && command.isNotEmpty) {
+            if (command.contains("fingerprint") || command.contains("finger")) {
+              _speechToText.stop();
+              _goToPrivatePage();
+            } else if (command.contains("faceid") || command.contains("face")) {
+              _speechToText.stop();
+              _authenticateWithFace();
+            }
+          }
+        },
+      );
+    } else {
+      await _flutterTts.speak("Speech recognition is not available on this device.");
+    }
+  }
+
+  @override
+  void dispose() {
+    _flutterTts.stop();
+    _speechToText.stop();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          // Gradient Background
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF736FF3),
+                  Color(0xFF736FF3),
+                  Color(0xFFF494DB),
+                  Color(0xFFF494DB),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
+          // Bottom clipped white wave
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: SizedBox(
+              height: 260,
+              width: double.infinity,
+              child: ClipPath(
+                clipper: InnerWaveClipper(),
+                child: Container(color: Colors.white),
+              ),
+            ),
+          ),
+          // Content
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Column(
+                  children: [
+                    const Text(
+                      "Login",
+                      style: TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    _buildWhiteButton("Login with Fingerprint", _goToPrivatePage),
+                    const SizedBox(height: 36),
+                    _buildWhiteButton("Login with Face ID", _authenticateWithFace),
+                    const SizedBox(height: 36),
+                    const Text(
+                      "Let's See The World Togather",
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    Image.asset(
+                      "assets/images/Untitled design.png",
+                      width: 240,
+                      height: 240,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWhiteButton(String text, VoidCallback onPressed) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF5A4FCF),
+        minimumSize: const Size.fromHeight(50),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        elevation: 3,
+        shadowColor: Colors.black26,
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+      ),
+    );
+  }
+
+  Future<void> _goToPrivatePage() async {
+    if (!await BiometricHelper.isBiometricSupported()) {
+      Fluttertoast.showToast(msg: "Device does not support biometrics.");
+      return;
+    }
+    final availableBiometrics = await BiometricHelper.getAvailableBiometrics();
+    if (availableBiometrics.isEmpty) {
+      Fluttertoast.showToast(msg: "No biometrics found. Please set it up.");
+      return;
+    }
+    final bool didAuthenticate = await BiometricHelper.authenticate();
+    if (didAuthenticate && mounted) {
+      Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => const PrivatePage()));
+    }
+  }
+
+  Future<void> _authenticateWithFace() async {
+    final bool didAuthenticate = await BiometricHelper.authenticateWithFace();
+    if (didAuthenticate && mounted) {
+      Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => const PrivatePage()));
+    }
+  }
+}
+
+// White inner wave
+class InnerWaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height * 0.3);
+    path.quadraticBezierTo(
+        size.width * 0.25, size.height * 0.5, size.width * 0.5, size.height * 0.4);
+    path.quadraticBezierTo(
+        size.width * 0.75, size.height * 0.3, size.width, size.height * 0.5);
+    path.lineTo(size.width, size.height);
+    path.lineTo(0, size.height);
+    path.close();
+    return path;
+  }
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}

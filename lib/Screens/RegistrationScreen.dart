@@ -810,6 +810,404 @@
 //
 
 
+// *****WAHAJ WALA BACKUP ****
+
+//
+//
+// import 'dart:io';
+// import 'dart:ui';
+// import 'dart:typed_data';
+//
+// import 'package:camera/camera.dart';
+// import 'package:flutter/material.dart';
+// import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+// import 'package:image/image.dart' as img;
+// import 'package:flutter/services.dart';
+// import 'package:flutter_tts/flutter_tts.dart';
+//
+// import '../ML/Recognition.dart';
+// import '../ML/Recognizer.dart';
+// import '../Util.dart';
+//
+// class RegistrationScreen extends StatefulWidget {
+//   const RegistrationScreen({super.key});
+//
+//   @override
+//   State<RegistrationScreen> createState() => _RegistrationScreenState();
+// }
+//
+// class _RegistrationScreenState extends State<RegistrationScreen> {
+//   CameraController? controller;
+//   CameraDescription? description;
+//   CameraLensDirection camDirec = CameraLensDirection.front;
+//
+//   bool isBusy = false;
+//   CameraImage? frame;
+//   late FaceDetector faceDetector;
+//   late Recognizer recognizer;
+//   dynamic _scanResults;
+//
+//   img.Image? image;
+//   bool register = false;
+//   TextEditingController textEditingController = TextEditingController();
+//
+//   // 👇 TTS
+//   final FlutterTts flutterTts = FlutterTts();
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//
+//     _initTTS();
+//     _speakIntro();
+//
+//     var options = FaceDetectorOptions(performanceMode: FaceDetectorMode.fast);
+//     faceDetector = FaceDetector(options: options);
+//
+//     recognizer = Recognizer();
+//
+//     _initCamera();
+//   }
+//
+//   // -------------------- TTS -----------------------
+//   Future<void> _initTTS() async {
+//     await flutterTts.setLanguage("en-US");
+//     await flutterTts.setPitch(1.0);
+//     await flutterTts.setSpeechRate(0.5);
+//   }
+//
+//   Future<void> _speakIntro() async {
+//     await flutterTts.speak("You are in face registration screen");
+//   }
+//   // ------------------------------------------------
+//
+//   // Camera initialization
+//   Future<void> _initCamera() async {
+//     final cameras = await availableCameras();
+//
+//     description = camDirec == CameraLensDirection.front
+//         ? cameras.firstWhere((c) => c.lensDirection == CameraLensDirection.front)
+//         : cameras.firstWhere((c) => c.lensDirection == CameraLensDirection.back);
+//
+//     controller = CameraController(
+//       description!,
+//       ResolutionPreset.medium,
+//       imageFormatGroup:
+//       Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
+//       enableAudio: false,
+//     );
+//
+//     await controller!.initialize();
+//     if (!mounted) return;
+//
+//     setState(() {});
+//
+//     controller!.startImageStream((image) {
+//       if (!isBusy) {
+//         isBusy = true;
+//         frame = image;
+//         doFaceDetectionOnFrame();
+//       }
+//     });
+//   }
+//
+//   @override
+//   void dispose() {
+//     controller?.dispose();
+//     flutterTts.stop();
+//     super.dispose();
+//   }
+//
+//   // Face Detection
+//   doFaceDetectionOnFrame() async {
+//     InputImage? inputImage = getInputImage();
+//     if (inputImage == null) {
+//       setState(() => isBusy = false);
+//       return;
+//     }
+//
+//     List<Face> faces = await faceDetector.processImage(inputImage);
+//     performFaceRecognition(faces);
+//   }
+//
+//   // Recognition / Registration
+//   performFaceRecognition(List<Face> faces) async {
+//     image = Platform.isIOS
+//         ? Util.convertBGRA8888ToImage(frame!)
+//         : Util.convertNV21(frame!);
+//
+//     image = img.copyRotate(
+//         image!, angle: camDirec == CameraLensDirection.front ? 270 : 90);
+//
+//     if (register) {
+//       for (Face face in faces) {
+//         Rect r = face.boundingBox;
+//
+//         img.Image croppedFace = img.copyCrop(
+//           image!,
+//           x: r.left.toInt(),
+//           y: r.top.toInt(),
+//           width: r.width.toInt(),
+//           height: r.height.toInt(),
+//         );
+//
+//         Recognition recognition =
+//         await recognizer.recognize(croppedFace, r);
+//
+//         showFaceRegistrationDialogue(croppedFace, recognition);
+//       }
+//
+//       register = false;
+//     }
+//
+//     setState(() {
+//       isBusy = false;
+//       _scanResults = faces;
+//     });
+//   }
+//
+//   // Registration Popup
+//   showFaceRegistrationDialogue(img.Image croppedFace, Recognition recognition) {
+//     showDialog(
+//       context: context,
+//       builder: (ctx) => AlertDialog(
+//         title: const Text("Face Registration", textAlign: TextAlign.center),
+//         content: SizedBox(
+//           height: 340,
+//           child: Column(
+//             children: [
+//               const SizedBox(height: 20),
+//               Image.memory(
+//                 Uint8List.fromList(img.encodeBmp(croppedFace)),
+//                 width: 200,
+//                 height: 200,
+//               ),
+//               SizedBox(
+//                 width: 200,
+//                 child: TextField(
+//                   controller: textEditingController,
+//                   decoration: const InputDecoration(
+//                     filled: true,
+//                     fillColor: Colors.white,
+//                     hintText: "Enter Name",
+//                   ),
+//                 ),
+//               ),
+//               const SizedBox(height: 10),
+//               ElevatedButton(
+//                 onPressed: () {
+//                   recognizer.registerFaceInDB(
+//                     textEditingController.text,
+//                     recognition.embeddings,
+//                     Uint8List.fromList(img.encodeBmp(croppedFace)),
+//                   );
+//                   textEditingController.text = "";
+//                   Navigator.pop(context);
+//                   ScaffoldMessenger.of(context).showSnackBar(
+//                     const SnackBar(content: Text("Face Registered")),
+//                   );
+//                 },
+//                 style: ElevatedButton.styleFrom(
+//                   minimumSize: const Size(200, 40),
+//                 ),
+//                 child: const Text("Register"),
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+//
+//   // MLKit Conversion
+//   final _orientations = {
+//     DeviceOrientation.portraitUp: 0,
+//     DeviceOrientation.landscapeLeft: 90,
+//     DeviceOrientation.portraitDown: 180,
+//     DeviceOrientation.landscapeRight: 270,
+//   };
+//
+//   InputImage? getInputImage() {
+//     if (controller == null || frame == null) return null;
+//
+//     final camera = description!;
+//     final sensorOrientation = camera.sensorOrientation;
+//
+//     InputImageRotation? rotation;
+//     var rotationCompensation =
+//     _orientations[controller!.value.deviceOrientation];
+//     if (rotationCompensation == null) return null;
+//
+//     if (camera.lensDirection == CameraLensDirection.front) {
+//       rotation = InputImageRotationValue.fromRawValue(
+//           (sensorOrientation + rotationCompensation) % 360);
+//     } else {
+//       rotation = InputImageRotationValue.fromRawValue(
+//           (sensorOrientation - rotationCompensation + 360) % 360);
+//     }
+//
+//     if (rotation == null) return null;
+//
+//     final format = InputImageFormatValue.fromRawValue(frame!.format.raw);
+//     if (format == null) return null;
+//
+//     if (frame!.planes.length != 1) return null;
+//     final plane = frame!.planes.first;
+//
+//     return InputImage.fromBytes(
+//       bytes: plane.bytes,
+//       metadata: InputImageMetadata(
+//         size: Size(frame!.width.toDouble(), frame!.height.toDouble()),
+//         rotation: rotation,
+//         format: format,
+//         bytesPerRow: plane.bytesPerRow,
+//       ),
+//     );
+//   }
+//
+//   // Face Boxes
+//   Widget buildResult() {
+//     if (_scanResults == null ||
+//         controller == null ||
+//         !controller!.value.isInitialized) {
+//       return const Center(child: Text('Camera is not initialized'));
+//     }
+//
+//     final Size imageSize = Size(
+//       controller!.value.previewSize!.height,
+//       controller!.value.previewSize!.width,
+//     );
+//
+//     return CustomPaint(
+//       painter: FaceDetectorPainter(imageSize, _scanResults, camDirec),
+//     );
+//   }
+//
+//   // Toggle Camera
+//   void _toggleCameraDirection() async {
+//     camDirec = camDirec == CameraLensDirection.back
+//         ? CameraLensDirection.front
+//         : CameraLensDirection.back;
+//
+//     await controller?.stopImageStream();
+//     await controller?.dispose();
+//     _initCamera();
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     Size size = MediaQuery.of(context).size;
+//     List<Widget> stackChildren = [];
+//
+//     if (controller != null && controller!.value.isInitialized) {
+//       stackChildren.add(
+//         Positioned.fill(
+//           child: CameraPreview(controller!),
+//         ),
+//       );
+//
+//       stackChildren.add(
+//         Positioned.fill(child: buildResult()),
+//       );
+//     } else {
+//       stackChildren.add(const Center(child: CircularProgressIndicator()));
+//     }
+//
+//     // Bottom Controls
+//     stackChildren.add(
+//       Positioned(
+//         bottom: 40,
+//         left: 20,
+//         right: 20,
+//         child: _bottomControlBar(),
+//       ),
+//     );
+//
+//     return Scaffold(
+//       backgroundColor: Colors.black,
+//       body: SafeArea(
+//         child: Stack(children: stackChildren),
+//       ),
+//     );
+//   }
+//
+//   Widget _bottomControlBar() {
+//     return ClipRRect(
+//       borderRadius: BorderRadius.circular(20),
+//       child: BackdropFilter(
+//         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+//         child: Container(
+//           padding: const EdgeInsets.all(16),
+//           decoration: BoxDecoration(
+//             color: Colors.deepPurple.withAlpha(80),
+//             borderRadius: BorderRadius.circular(20),
+//           ),
+//           child: Row(
+//             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+//             children: [
+//               IconButton(
+//                 icon: const Icon(Icons.cached, color: Colors.white),
+//                 iconSize: 40,
+//                 onPressed: _toggleCameraDirection,
+//               ),
+//               IconButton(
+//                 icon: const Icon(Icons.face_retouching_natural,
+//                     color: Colors.white),
+//                 iconSize: 40,
+//                 onPressed: () {
+//                   register = true;
+//                 },
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+//
+// class FaceDetectorPainter extends CustomPainter {
+//   final Size absoluteImageSize;
+//   final List<Face> faces;
+//   final CameraLensDirection camDirection;
+//
+//   FaceDetectorPainter(this.absoluteImageSize, this.faces, this.camDirection);
+//
+//   @override
+//   void paint(Canvas canvas, Size size) {
+//     final double scaleX = size.width / absoluteImageSize.width;
+//     final double scaleY = size.height / absoluteImageSize.height;
+//
+//     final Paint boxPaint = Paint()
+//       ..style = PaintingStyle.stroke
+//       ..strokeWidth = 2.5
+//       ..color = Colors.deepPurple.shade300;
+//
+//     for (final face in faces) {
+//       final double left = camDirection == CameraLensDirection.front
+//           ? (absoluteImageSize.width - face.boundingBox.right) * scaleX
+//           : face.boundingBox.left * scaleX;
+//
+//       final double right = camDirection == CameraLensDirection.front
+//           ? (absoluteImageSize.width - face.boundingBox.left) * scaleX
+//           : face.boundingBox.right * scaleX;
+//
+//       final double top = face.boundingBox.top * scaleY;
+//       final double bottom = face.boundingBox.bottom * scaleY;
+//
+//       final rect = Rect.fromLTRB(left, top, right, bottom);
+//       final rRect = RRect.fromRectAndRadius(rect, const Radius.circular(12));
+//       canvas.drawRRect(rRect, boxPaint);
+//     }
+//   }
+//
+//   @override
+//   bool shouldRepaint(oldDelegate) => true;
+// }
+//
+
+
+
 
 import 'dart:io';
 import 'dart:ui';
@@ -839,6 +1237,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   CameraLensDirection camDirec = CameraLensDirection.front;
 
   bool isBusy = false;
+  bool isSwitchingCamera = false;
   CameraImage? frame;
   late FaceDetector faceDetector;
   late Recognizer recognizer;
@@ -848,25 +1247,21 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   bool register = false;
   TextEditingController textEditingController = TextEditingController();
 
-  // 👇 TTS
   final FlutterTts flutterTts = FlutterTts();
 
   @override
   void initState() {
     super.initState();
-
     _initTTS();
     _speakIntro();
 
     var options = FaceDetectorOptions(performanceMode: FaceDetectorMode.fast);
     faceDetector = FaceDetector(options: options);
-
     recognizer = Recognizer();
 
     _initCamera();
   }
 
-  // -------------------- TTS -----------------------
   Future<void> _initTTS() async {
     await flutterTts.setLanguage("en-US");
     await flutterTts.setPitch(1.0);
@@ -876,36 +1271,42 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   Future<void> _speakIntro() async {
     await flutterTts.speak("You are in face registration screen");
   }
-  // ------------------------------------------------
 
-  // Camera initialization
   Future<void> _initCamera() async {
-    final cameras = await availableCameras();
+    try {
+      final cameras = await availableCameras();
 
-    description = camDirec == CameraLensDirection.front
-        ? cameras.firstWhere((c) => c.lensDirection == CameraLensDirection.front)
-        : cameras.firstWhere((c) => c.lensDirection == CameraLensDirection.back);
+      description = camDirec == CameraLensDirection.front
+          ? cameras.firstWhere((c) => c.lensDirection == CameraLensDirection.front)
+          : cameras.firstWhere((c) => c.lensDirection == CameraLensDirection.back);
 
-    controller = CameraController(
-      description!,
-      ResolutionPreset.medium,
-      imageFormatGroup:
-      Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
-      enableAudio: false,
-    );
+      final newController = CameraController(
+        description!,
+        ResolutionPreset.medium,
+        imageFormatGroup:
+        Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
+        enableAudio: false,
+      );
 
-    await controller!.initialize();
-    if (!mounted) return;
+      await newController.initialize();
 
-    setState(() {});
-
-    controller!.startImageStream((image) {
-      if (!isBusy) {
-        isBusy = true;
-        frame = image;
-        doFaceDetectionOnFrame();
+      // Replace old controller safely
+      if (mounted) {
+        setState(() {
+          controller = newController;
+        });
       }
-    });
+
+      newController.startImageStream((image) {
+        if (!isBusy) {
+          isBusy = true;
+          frame = image;
+          doFaceDetectionOnFrame();
+        }
+      });
+    } catch (e) {
+      debugPrint("Camera init error: $e");
+    }
   }
 
   @override
@@ -915,7 +1316,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     super.dispose();
   }
 
-  // Face Detection
   doFaceDetectionOnFrame() async {
     InputImage? inputImage = getInputImage();
     if (inputImage == null) {
@@ -927,7 +1327,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     performFaceRecognition(faces);
   }
 
-  // Recognition / Registration
   performFaceRecognition(List<Face> faces) async {
     image = Platform.isIOS
         ? Util.convertBGRA8888ToImage(frame!)
@@ -963,7 +1362,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     });
   }
 
-  // Registration Popup
   showFaceRegistrationDialogue(img.Image croppedFace, Recognition recognition) {
     showDialog(
       context: context,
@@ -1016,7 +1414,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     );
   }
 
-  // MLKit Conversion
   final _orientations = {
     DeviceOrientation.portraitUp: 0,
     DeviceOrientation.landscapeLeft: 90,
@@ -1062,7 +1459,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     );
   }
 
-  // Face Boxes
   Widget buildResult() {
     if (_scanResults == null ||
         controller == null ||
@@ -1080,16 +1476,38 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     );
   }
 
-  // Toggle Camera
   void _toggleCameraDirection() async {
-    camDirec = camDirec == CameraLensDirection.back
-        ? CameraLensDirection.front
-        : CameraLensDirection.back;
+    if (isSwitchingCamera) return;
+    isSwitchingCamera = true;
 
-    await controller?.stopImageStream();
-    await controller?.dispose();
-    _initCamera();
+    try {
+      // Hold reference to old controller
+      final oldController = controller;
+
+      // Clear controller from state so UI doesn’t rebuild with disposed one
+      setState(() {
+        controller = null;
+      });
+
+      // Dispose safely
+      await oldController?.stopImageStream();
+      await oldController?.dispose();
+
+      // Toggle direction
+      camDirec = camDirec == CameraLensDirection.back
+          ? CameraLensDirection.front
+          : CameraLensDirection.back;
+
+      // Small delay before re-init
+      await Future.delayed(const Duration(milliseconds: 200));
+      await _initCamera();
+    } catch (e) {
+      debugPrint("Toggle camera error: $e");
+    }
+
+    isSwitchingCamera = false;
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -1097,20 +1515,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     List<Widget> stackChildren = [];
 
     if (controller != null && controller!.value.isInitialized) {
-      stackChildren.add(
-        Positioned.fill(
-          child: CameraPreview(controller!),
-        ),
-      );
-
-      stackChildren.add(
-        Positioned.fill(child: buildResult()),
-      );
+      stackChildren.add(Positioned.fill(child: CameraPreview(controller!)));
+      stackChildren.add(Positioned.fill(child: buildResult()));
     } else {
       stackChildren.add(const Center(child: CircularProgressIndicator()));
     }
 
-    // Bottom Controls
     stackChildren.add(
       Positioned(
         bottom: 40,
@@ -1130,11 +1540,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   Widget _bottomControlBar() {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.all(16),
+    child: Container(
+    padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.deepPurple.withAlpha(80),
             borderRadius: BorderRadius.circular(20),
@@ -1158,7 +1568,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             ],
           ),
         ),
-      ),
+    ),
     );
   }
 }
@@ -1201,5 +1611,3 @@ class FaceDetectorPainter extends CustomPainter {
   @override
   bool shouldRepaint(oldDelegate) => true;
 }
-
-

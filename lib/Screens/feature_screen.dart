@@ -4664,6 +4664,413 @@
 // }
 
 
+//***wahaj wala***
+// import 'package:flutter/material.dart';
+// import 'package:flutter_tts/flutter_tts.dart';
+// import 'package:speech_to_text/speech_to_text.dart' as stt;
+// import 'package:audioplayers/audioplayers.dart';
+// import 'package:permission_handler/permission_handler.dart';
+// import 'package:camera/camera.dart';
+//
+// // Screens
+// import 'package:objectde/Screens/vision_screen.dart';
+// import 'package:objectde/Screens/task_screen.dart';
+// import 'package:objectde/pages/ocr.dart';
+// import '../objectdetection.dart';
+// import 'package:objectde/Screens/HomeScreen.dart';
+// import 'package:objectde/Screens/currency_screen.dart';
+//
+// class FeatureScreen extends StatefulWidget {
+//   const FeatureScreen({super.key});
+//
+//   @override
+//   State<FeatureScreen> createState() => _FeatureScreenState();
+// }
+//
+// class _FeatureScreenState extends State<FeatureScreen> {
+//   late FlutterTts _flutterTts;
+//   late stt.SpeechToText _speechToText;
+//   final AudioPlayer _audioPlayer = AudioPlayer();
+//
+//   bool isListening = false;
+//   bool _hasNavigated = false;
+//   bool isVoiceModeOn = true;
+//   bool _isActive = true;
+//   bool _isFirstLaunch = true;
+//   String text = '';
+//
+//   List<CameraDescription> _cameras = [];
+//   bool _cameraReady = false;
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _initAll();
+//     _initCamera();
+//   }
+//
+//   @override
+//   void dispose() {
+//     _isActive = false;
+//     // best-effort stop/cancel STT (dispose cannot be async)
+//     try {
+//       _speechToText.stop();
+//       _speechToText.cancel();
+//     } catch (_) {}
+//     _audioPlayer.dispose();
+//     _flutterTts.stop();
+//     super.dispose();
+//   }
+//
+//   /// Stop and cancel the speech_to_text listener and update UI state.
+//   Future<void> _stopSpeechToText() async {
+//     try {
+//       await _speechToText.stop();
+//     } catch (_) {}
+//     try {
+//       await _speechToText.cancel();
+//     } catch (_) {}
+//     if (mounted) setState(() => isListening = false);
+//     // give the platform a short moment to release the mic
+//     await Future.delayed(const Duration(milliseconds: 120));
+//   }
+//
+//   Future<void> _initCamera() async {
+//     try {
+//       _cameras = await availableCameras();
+//       setState(() => _cameraReady = true);
+//     } catch (e) {
+//       print("⚠ Camera load failed: $e");
+//     }
+//   }
+//
+//   Future<void> _initAll() async {
+//     _flutterTts = FlutterTts();
+//     _speechToText = stt.SpeechToText();
+//
+//     var status = await Permission.microphone.request();
+//     if (status.isGranted && isVoiceModeOn) {
+//       await _speakOptions(firstTime: true);
+//     } else if (!status.isGranted) {
+//       await _flutterTts.speak(
+//           "Please allow microphone permission in settings to use voice navigation.");
+//     }
+//   }
+//
+//   Future<void> _speakOptions({bool firstTime = false}) async {
+//     if (!isVoiceModeOn) return;
+//
+//     final optionsText = firstTime
+//         ? "What you want to do,  Say Vision, Task Management, OCR, Person Detection, Object  Detection , or Currency Detection."
+//         : "You are in the main page. Say Vision, Task Management, OCR, Person Detection, Object  Detection , or Currency Detection";
+//
+//     try {
+//       await _flutterTts.stop();
+//     } catch (_) {}
+//
+//     await _flutterTts.setLanguage("en-US");
+//     await _flutterTts.setSpeechRate(0.5);
+//
+//     await _flutterTts.speak(optionsText);
+//     await _flutterTts.awaitSpeakCompletion(true);
+//
+//     if (!_isActive || !isVoiceModeOn) return;
+//
+//     await _playBeepSound();
+//     await captureVoice();
+//   }
+//
+//   Future<void> _playBeepSound() async {
+//     try {
+//       await _audioPlayer.play(AssetSource('sounds/beep.mp3'));
+//     } catch (e) {
+//       print("⚠️ Beep missing or invalid: $e");
+//     }
+//   }
+//
+//   Future<void> captureVoice() async {
+//     if (!isVoiceModeOn || !_isActive) return;
+//
+//     bool available = await _speechToText.initialize(
+//       onStatus: (status) async {
+//         if (!_isActive) return;
+//         if (status == 'notListening' && !_hasNavigated) {
+//           await Future.delayed(const Duration(seconds: 1));
+//           if (_isActive && isVoiceModeOn) {
+//             await _playBeepSound();
+//             await captureVoice();
+//           }
+//         }
+//       },
+//       onError: (error) async {
+//         if (!_isActive) return;
+//         await Future.delayed(const Duration(seconds: 1));
+//         if (_isActive && isVoiceModeOn) {
+//           await _playBeepSound();
+//           await captureVoice();
+//         }
+//       },
+//     );
+//
+//     if (available) {
+//       setState(() => isListening = true);
+//       await _speechToText.listen(
+//         listenMode: stt.ListenMode.dictation,
+//         partialResults: true,
+//         pauseFor: const Duration(seconds: 5),
+//         listenFor: const Duration(minutes: 5),
+//         onResult: (result) {
+//           if (!_isActive || !isVoiceModeOn) return;
+//           setState(() => text = result.recognizedWords);
+//           if (result.finalResult && text.isNotEmpty) {
+//             _navigateToFeature(text.toLowerCase());
+//           }
+//         },
+//       );
+//     } else {
+//       await _flutterTts.speak("Speech recognition is not available on this device.");
+//     }
+//   }
+//
+//   Future<void> _speakOnReturn() async {
+//     if (!_isActive) return;
+//
+//     await Future.delayed(const Duration(milliseconds: 300));
+//
+//     if (isVoiceModeOn) {
+//       // Voice mode is ON - speak options with voice commands
+//       await _speakOptions(firstTime: false);
+//     } else {
+//       // Voice mode is OFF - ensure STT is stopped/cancelled and only speak the simple message
+//       await _stopSpeechToText();
+//       await _flutterTts.speak("You are in the main page.");
+//     }
+//   }
+//
+//   Future<void> _navigateToFeature(String command) async {
+//     if (_hasNavigated) return;
+//
+//     Widget? selectedPage;
+//     String? featureName;
+//
+//     if (command.contains('vision')) {
+//       selectedPage = const VisionScreen();
+//       featureName = "Vision";
+//     } else if (command.contains('task')) {
+//       selectedPage = const TaskScreen();
+//       featureName = "Task Management";
+//     } else if (command.contains('ocr')) {
+//       selectedPage = OCRPage(voiceNavigationEnabled: isVoiceModeOn);
+//       featureName = "OCR";
+//     } else if (command.contains('person')) {
+//       selectedPage = HomeScreenPageWrapper(voiceNavigationEnabled: isVoiceModeOn);
+//       featureName = "Person Detection";
+//     } else if (command.contains('object')) {
+//       selectedPage = const ObjectDetectionScreen();
+//       featureName = "Object Detection";
+//     } else if (command.contains('currency')) {
+//       if (_cameraReady) {
+//         selectedPage = CurrencyScreen(camera: _cameras[0]);
+//         featureName = "Currency Detection";
+//       } else {
+//         await _flutterTts.speak("Camera is still loading. Please wait.");
+//         return;
+//       }
+//     }
+//
+//     if (selectedPage != null) {
+//       _hasNavigated = true;
+//       _isActive = false;
+//
+//       await _flutterTts.stop();
+//       await _stopSpeechToText();
+//       setState(() => isListening = false);
+//
+//       await _flutterTts.speak("Opening $featureName module");
+//       await _flutterTts.awaitSpeakCompletion(true);
+//
+//       if (mounted) {
+//         await Navigator.push(
+//           context,
+//           MaterialPageRoute(builder: (_) => selectedPage!),
+//         );
+//
+//         // RETURNING BACK
+//         _hasNavigated = false;
+//         _isActive = true;
+//         _isFirstLaunch = false;
+//
+//         await _speakOnReturn();
+//       }
+//     }
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return WillPopScope(
+//       onWillPop: () async {
+//         await _flutterTts.speak("You are in the main page.");
+//         return true;
+//       },
+//       child: Scaffold(
+//         backgroundColor: Colors.deepPurple.shade50,
+//         appBar: AppBar(
+//           title: const Text("Voice Navigation"),
+//           backgroundColor: Colors.deepPurple,
+//           actions: [
+//             Row(
+//               children: [
+//                 const Text("Voice", style: TextStyle(color: Colors.white)),
+//                 Switch(
+//                   value: isVoiceModeOn,
+//                   activeColor: Colors.white,
+//                   onChanged: (value) async {
+//                     setState(() => isVoiceModeOn = value);
+//                     if (value) {
+//                       _isActive = true;
+//                       await _speakOptions(firstTime: !_isFirstLaunch);
+//                     } else {
+//                       _isActive = false;
+//                       await _flutterTts.stop();
+//                       await _stopSpeechToText();
+//                       setState(() => isListening = false);
+//                       await _flutterTts.speak("Voice mode turned off.");
+//                     }
+//                   },
+//                 ),
+//               ],
+//             ),
+//           ],
+//         ),
+//         body: SafeArea(
+//           child: SingleChildScrollView(
+//             padding: const EdgeInsets.all(24.0),
+//             child: Center(
+//               child: Column(
+//                 children: [
+//                   Icon(
+//                     isListening ? Icons.mic : Icons.mic_off,
+//                     color: isListening ? Colors.red : Colors.grey,
+//                     size: 90,
+//                   ),
+//                   const SizedBox(height: 20),
+//                   Text(
+//                     isVoiceModeOn
+//                         ? (isListening ? "Listening..." : "Waiting for command...")
+//                         : "Voice Mode Off",
+//                     style: const TextStyle(fontSize: 18),
+//                   ),
+//                   const SizedBox(height: 30),
+//                   Text(
+//                     text.isEmpty ? "Say something..." : text,
+//                     textAlign: TextAlign.center,
+//                     style: const TextStyle(fontSize: 20),
+//                   ),
+//                   const SizedBox(height: 40),
+//                   const Divider(),
+//                   const SizedBox(height: 20),
+//                   const Text("Or choose manually:", style: TextStyle(fontSize: 18)),
+//                   const SizedBox(height: 20),
+//                   _buildButton("Vision", const VisionScreen()),
+//                   _buildButton("Task Management", const TaskScreen()),
+//                   _buildButton("OCR", OCRPage(voiceNavigationEnabled: isVoiceModeOn)),
+//                   _buildButton(
+//                       "Person Detection",
+//                       HomeScreenPageWrapper(
+//                           voiceNavigationEnabled: isVoiceModeOn)),
+//                   _buildButton("Object Detection", const ObjectDetectionScreen()),
+//                   _buildButton(
+//                     "Currency Detection",
+//                     _cameraReady
+//                         ? CurrencyScreen(camera: _cameras[0])
+//                         : const Center(child: CircularProgressIndicator()),
+//                   ),
+//                 ],
+//               ),
+//             ),
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+//
+//   Widget _buildButton(String label, Widget page) {
+//     return Padding(
+//       padding: const EdgeInsets.only(bottom: 16),
+//       child: ElevatedButton(
+//         style: ElevatedButton.styleFrom(
+//           backgroundColor: Colors.deepPurple,
+//           minimumSize: const Size(double.infinity, 50),
+//         ),
+//         onPressed: () async {
+//           if (label == "Currency Detection" && !_cameraReady) {
+//             ScaffoldMessenger.of(context).showSnackBar(
+//               const SnackBar(
+//                   content: Text("Camera is still loading. Please wait...")),
+//             );
+//             return;
+//           }
+//
+//           _isActive = false;
+//           await _flutterTts.stop();
+//           await _stopSpeechToText();
+//           setState(() => isListening = false);
+//
+//           await Navigator.push(
+//             context,
+//             MaterialPageRoute(builder: (_) => page),
+//           );
+//
+//           // RETURNING BACK
+//           _isActive = true;
+//           _isFirstLaunch = false;
+//
+//           await _speakOnReturn();
+//         },
+//         child: Text(label, style: const TextStyle(color: Colors.white)),
+//       ),
+//     );
+//   }
+// }
+//
+// /// Wrapper for HomeScreen to isolate TTS like OCRPage
+// class HomeScreenPageWrapper extends StatefulWidget {
+//   final bool voiceNavigationEnabled;
+//   const HomeScreenPageWrapper({Key? key, this.voiceNavigationEnabled = false})
+//       : super(key: key);
+//
+//   @override
+//   State<HomeScreenPageWrapper> createState() => _HomeScreenPageWrapperState();
+// }
+//
+// class _HomeScreenPageWrapperState extends State<HomeScreenPageWrapper> {
+//   late FlutterTts _flutterTts;
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _flutterTts = FlutterTts();
+//
+//     if (widget.voiceNavigationEnabled) {
+//       Future.delayed(const Duration(milliseconds: 500), () async {
+//         await _flutterTts.speak("You are in Person Detection module.");
+//       });
+//     }
+//   }
+//
+//   @override
+//   void dispose() {
+//     _flutterTts.stop();
+//     super.dispose();
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return HomeScreen(voiceNavigationEnabled: widget.voiceNavigationEnabled);
+//   }
+// }
+
+
 
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
@@ -4761,8 +5168,8 @@ class _FeatureScreenState extends State<FeatureScreen> {
     if (!isVoiceModeOn) return;
 
     final optionsText = firstTime
-        ? "Welcome to EchoNav. Say Vision, OCR, Currency, Task Management, or Person Detection."
-        : "You are in the main page. Say Vision, OCR, Currency, Task Management, or Person Detection.";
+        ? "What you want to do,  Say Vision, Task Management, OCR, Person Detection, Object  Detection , or Currency Detection."
+        : "You are in the main page. Say Vision, Task Management, OCR, Person Detection, Object  Detection , or Currency Detection";
 
     try {
       await _flutterTts.stop();
@@ -4915,7 +5322,7 @@ class _FeatureScreenState extends State<FeatureScreen> {
       child: Scaffold(
         backgroundColor: Colors.deepPurple.shade50,
         appBar: AppBar(
-          title: const Text("🎤 EchoNav Voice Navigation"),
+          title: const Text("Voice Navigation"),
           backgroundColor: Colors.deepPurple,
           actions: [
             Row(
@@ -4996,38 +5403,57 @@ class _FeatureScreenState extends State<FeatureScreen> {
 
   Widget _buildButton(String label, Widget page) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.deepPurple,
-          minimumSize: const Size(double.infinity, 50),
-        ),
-        onPressed: () async {
-          if (label == "Currency Detection" && !_cameraReady) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text("Camera is still loading. Please wait...")),
+      padding: const EdgeInsets.only(bottom: 14),
+      child: SizedBox(
+        width: double.infinity,   // all buttons same width
+        height: 55,               // fixed height for consistency
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.deepPurple,   // same original color
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            elevation: 0, // flat modern look, no shadow
+          ),
+          onPressed: () async {
+            if (label == "Currency Detection" && !_cameraReady) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content: Text("Camera is still loading. Please wait...")),
+              );
+              return;
+            }
+
+            _isActive = false;
+            await _flutterTts.stop();
+            await _stopSpeechToText();
+            setState(() => isListening = false);
+
+            await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => page),
             );
-            return;
-          }
 
-          _isActive = false;
-          await _flutterTts.stop();
-          await _stopSpeechToText();
-          setState(() => isListening = false);
+            // RETURNING BACK
+            _isActive = true;
+            _isFirstLaunch = false;
 
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => page),
-          );
-
-          // RETURNING BACK
-          _isActive = true;
-          _isFirstLaunch = false;
-
-          await _speakOnReturn();
-        },
-        child: Text(label, style: const TextStyle(color: Colors.white)),
+            await _speakOnReturn();
+          },
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            child: Text(
+              label,
+              key: ValueKey(label),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

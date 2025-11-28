@@ -1,0 +1,83 @@
+// group group 'sq.flutter.tflite_v2'
+// version '1.0-SNAPSHOT'
+
+// buildscript {
+//     repositories {
+//         google()
+//         // jcenter()
+//         mavenCentral()
+//     }
+
+//     dependencies {
+//         // classpath 'com.android.tools.build:gradle:3.6.3'
+//         classpath 'com.android.tools.build:gradle:7.3.1'
+//     }
+// }
+
+// rootProject.allprojects {
+//     repositories {
+//         google()
+//         // jcenter()
+//         mavenCentral()
+//     }
+// }
+
+// apply plugin: 'com.android.library'
+
+// android {
+//     compileSdkVersion 33
+//     namespace "sq.flutter.tflite_v2"
+
+//     defaultConfig {
+//         minSdkVersion 21
+//         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+//     }
+//     lintOptions {
+//         disable 'InvalidPackage'
+//     }
+
+//     dependencies {
+//         implementation 'org.tensorflow:tensorflow-lite:+'
+//         implementation 'org.tensorflow:tensorflow-lite-gpu:+'
+//     }
+// }
+
+group 'sq.flutter.tflite_v2'
+version '1.0-SNAPSHOT'
+
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.0'
+    }
+}
+
+rootProject.allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 33
+    namespace "sq.flutter.tflite_v2"
+
+    defaultConfig {
+        minSdkVersion 21
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+    lintOptions {
+        disable 'InvalidPackage'
+    }
+}
+
+dependencies {
+    implementation 'org.tensorflow:tensorflow-lite:+'
+    implementation 'org.tensorflow:tensorflow-lite-gpu:+'
+}
